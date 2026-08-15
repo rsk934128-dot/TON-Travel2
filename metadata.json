@@ -1,0 +1,6 @@
+{
+  "name": "TON Travel",
+  "description": "TON Blockchain Telegram Mini App for hotel bookings, TON Connect payments, crypto travel vouchers, cashback rewards, and email confirmations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,96 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidBooking(data) {
+      return data.keys().hasAll(['reference', 'hotelId', 'hotelName', 'primaryGuestName', 'primaryGuestEmail', 'status', 'createdAt'])
+        && data.reference is string && data.reference.size() <= 128
+        && data.hotelId is string && data.hotelId.size() <= 100
+        && data.hotelName is string && data.hotelName.size() <= 200
+        && data.primaryGuestName is string && data.primaryGuestName.size() <= 200
+        && data.primaryGuestEmail is string && data.primaryGuestEmail.size() <= 200
+        && data.status in ['Guaranteed', 'Pending', 'Completed']
+        && data.createdAt is string && data.createdAt.size() <= 100;
+    }
+
+    function isValidCommunityQA(data) {
+      return data.keys().hasAll(['question', 'answerSummary'])
+        && data.question is string && data.question.size() <= 1000
+        && data.answerSummary is string && data.answerSummary.size() <= 2000;
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'loyaltyTier', 'preferredCurrency'])
+        && data.uid is string && data.uid.size() <= 128
+        && data.loyaltyTier in ['Bronze', 'Silver', 'Gold', 'Platinum']
+        && data.preferredCurrency in ['TON', 'USD', 'EUR', 'BDT'];
+    }
+
+    function isValidHotelReview(data) {
+      return data.keys().hasAll(['hotelId', 'authorName', 'rating', 'comment'])
+        && data.hotelId is string && data.hotelId.size() <= 128
+        && data.authorName is string && data.authorName.size() <= 200
+        && (data.rating is number || data.rating is int)
+        && data.comment is string && data.comment.size() <= 2000;
+    }
+
+    // Default catch-all rule: Deny all reads & writes
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Connection test collection
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+
+    // Bookings and vouchers
+    match /bookings/{bookingId} {
+      allow read: if true;
+      allow create: if isValidBooking(incoming());
+      allow update: if isSignedIn() && isValidBooking(incoming());
+      allow delete: if false;
+    }
+
+    // Community Q&A items
+    match /community_qa/{qaId} {
+      allow read: if true;
+      allow create: if isValidCommunityQA(incoming());
+      allow update: if isSignedIn() && isValidCommunityQA(incoming());
+      allow delete: if isSignedIn();
+    }
+
+    // User profiles & loyalty metadata
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && request.auth.uid == userId && isValidUserProfile(incoming());
+      allow delete: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Hotel user reviews and testimonials
+    match /hotel_reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isValidHotelReview(incoming());
+      allow update: if isSignedIn() && isValidHotelReview(incoming());
+      allow delete: if isSignedIn();
+    }
+  }
+}

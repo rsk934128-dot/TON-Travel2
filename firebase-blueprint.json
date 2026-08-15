@@ -1,0 +1,113 @@
+{
+  "entities": {
+    "Booking": {
+      "title": "Booking",
+      "description": "Hotel reservation voucher and payment confirmation on TON blockchain.",
+      "type": "object",
+      "properties": {
+        "reference": { "type": "string", "description": "Unique booking reference ID" },
+        "hotelId": { "type": "string", "description": "Hotel identifier" },
+        "hotelName": { "type": "string", "description": "Name of the hotel" },
+        "location": { "type": "string", "description": "Location/country of hotel" },
+        "roomCategory": { "type": "string", "description": "Room type reserved" },
+        "guests": { "type": "number", "description": "Number of guests" },
+        "checkIn": { "type": "string", "description": "Check-in date YYYY-MM-DD" },
+        "checkOut": { "type": "string", "description": "Check-out date YYYY-MM-DD" },
+        "nights": { "type": "number", "description": "Number of stay nights" },
+        "totalPaidUsd": { "type": "number", "description": "Total payment in USD" },
+        "totalPaidTon": { "type": "number", "description": "Total payment in TON" },
+        "cashbackPercent": { "type": "number", "description": "Cashback percentage earned" },
+        "cashbackTon": { "type": "number", "description": "Cashback amount in TON" },
+        "cashbackUsd": { "type": "number", "description": "Cashback amount in USD" },
+        "payoutWallet": { "type": "string", "description": "TON wallet payout address" },
+        "primaryGuestName": { "type": "string", "description": "Guest full name" },
+        "primaryGuestEmail": { "type": "string", "description": "Guest email address" },
+        "telegramUsername": { "type": "string", "description": "Telegram handle" },
+        "status": { "type": "string", "enum": ["Guaranteed", "Pending", "Completed"], "description": "Booking status" },
+        "createdAt": { "type": "string", "description": "ISO timestamp of booking" },
+        "txHash": { "type": "string", "description": "TON blockchain transaction hash" },
+        "userId": { "type": "string", "description": "Firebase UID or wallet user ID" }
+      },
+      "required": ["reference", "hotelId", "hotelName", "primaryGuestName", "primaryGuestEmail", "status", "createdAt"]
+    },
+    "CommunityQuestion": {
+      "title": "CommunityQuestion",
+      "description": "Community Q&A item for travel support and guide discussions.",
+      "type": "object",
+      "properties": {
+        "question": { "type": "string", "description": "Community question text" },
+        "tgLink": { "type": "string", "description": "Telegram message or chat link" },
+        "views": { "type": "string", "description": "View counter display string" },
+        "answerSummary": { "type": "string", "description": "Summary of answer" },
+        "videoDuration": { "type": "string", "description": "Video or audio guide duration" },
+        "transcript": { "type": "string", "description": "Full text transcript" },
+        "createdAt": { "type": "string", "description": "ISO timestamp" },
+        "authorUid": { "type": "string", "description": "Author UID" }
+      },
+      "required": ["question", "answerSummary"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile metadata including loyalty tier and preferred currency.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "User UID" },
+        "displayName": { "type": "string", "description": "User display name" },
+        "email": { "type": "string", "description": "User email address" },
+        "photoURL": { "type": "string", "description": "Profile avatar photo URL" },
+        "loyaltyTier": { "type": "string", "enum": ["Bronze", "Silver", "Gold", "Platinum"], "description": "Travel loyalty program tier" },
+        "preferredCurrency": { "type": "string", "enum": ["TON", "USD", "EUR", "BDT"], "description": "User preferred display currency" },
+        "updatedAt": { "type": "string", "description": "ISO timestamp of last update" }
+      },
+      "required": ["uid", "loyaltyTier", "preferredCurrency"]
+    },
+    "HotelReview": {
+      "title": "HotelReview",
+      "description": "User review, star rating, and feedback testimonial for a hotel.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Review unique ID" },
+        "hotelId": { "type": "string", "description": "Associated hotel ID" },
+        "authorName": { "type": "string", "description": "Reviewer display name" },
+        "rating": { "type": "number", "description": "Star rating out of 5" },
+        "comment": { "type": "string", "description": "Feedback testimonial comment text" },
+        "stayDate": { "type": "string", "description": "Month and year of stay" },
+        "verifiedGuest": { "type": "boolean", "description": "Whether reviewer is a verified TON booking guest" },
+        "createdAt": { "type": "string", "description": "ISO creation timestamp" },
+        "userId": { "type": "string", "description": "Optional user UID" }
+      },
+      "required": ["hotelId", "authorName", "rating", "comment"]
+    },
+    "TestConnection": {
+      "title": "TestConnection",
+      "description": "Test document for checking Firestore server connectivity.",
+      "type": "object",
+      "properties": {
+        "status": { "type": "string" },
+        "timestamp": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/bookings/{bookingId}": {
+      "schema": "Booking",
+      "description": "Collection of user hotel bookings and vouchers"
+    },
+    "/community_qa/{qaId}": {
+      "schema": "CommunityQuestion",
+      "description": "Collection of travel community questions and answers"
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile metadata including loyalty tier and preferred currency"
+    },
+    "/hotel_reviews/{reviewId}": {
+      "schema": "HotelReview",
+      "description": "Collection of hotel user reviews and star rating testimonials"
+    },
+    "/test/{docId}": {
+      "schema": "TestConnection",
+      "description": "Connection test collection"
+    }
+  }
+}
