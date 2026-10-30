@@ -48,25 +48,25 @@ const LOYALTY_TIER_COMPARISON_DATA = [
   { bookingTotalUsd: 12000, bookingTotalTon: 2214 },
   { bookingTotalUsd: 20000, bookingTotalTon: 3690 },
 ].map((item) => {
-  const bronzeUsd = item.bookingTotalUsd * 0.02;
-  const silverUsd = item.bookingTotalUsd * 0.05;
-  const goldUsd = item.bookingTotalUsd * 0.08;
+  const bronzeUsd = item.bookingTotalUsd * 0.015;
+  const silverUsd = item.bookingTotalUsd * 0.025;
+  const goldUsd = item.bookingTotalUsd * 0.035;
 
-  const bronzeTon = item.bookingTotalTon * 0.02;
-  const silverTon = item.bookingTotalTon * 0.05;
-  const goldTon = item.bookingTotalTon * 0.08;
+  const bronzeTon = item.bookingTotalTon * 0.015;
+  const silverTon = item.bookingTotalTon * 0.025;
+  const goldTon = item.bookingTotalTon * 0.035;
 
   return {
     bookingUsd: `$${item.bookingTotalUsd.toLocaleString()}`,
     bookingTon: `${item.bookingTotalTon} TON`,
     bookingUsdRaw: item.bookingTotalUsd,
     bookingTonRaw: item.bookingTotalTon,
-    BronzeUsd: Math.round(bronzeUsd),
-    SilverUsd: Math.round(silverUsd),
-    GoldUsd: Math.round(goldUsd),
-    BronzeTon: Number(bronzeTon.toFixed(1)),
-    SilverTon: Number(silverTon.toFixed(1)),
-    GoldTon: Number(goldTon.toFixed(1)),
+    BronzeUsd: Number(bronzeUsd.toFixed(1)),
+    SilverUsd: Number(silverUsd.toFixed(1)),
+    GoldUsd: Number(goldUsd.toFixed(1)),
+    BronzeTon: Number(bronzeTon.toFixed(2)),
+    SilverTon: Number(silverTon.toFixed(2)),
+    GoldTon: Number(goldTon.toFixed(2)),
   };
 });
 
@@ -283,8 +283,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ lang }) 
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
               {lang === 'en'
-                ? "Compare potential cashback returns for 'Bronze' (2%), 'Silver' (5%), and 'Gold' (8%) status across booking total benchmarks."
-                : 'বুকিং ভলিউমের ভিত্তিতে ব্রোঞ্জ (২%), সিলভার (৫%) এবং গোল্ড (৮%) টিয়ারের ক্যাশব্যাক তুলনা করুন।'}
+                ? "Compare potential cashback returns for 'Bronze' (1.5%), 'Silver' (2.5%), and 'Gold' (3.5%) status across booking total benchmarks."
+                : 'বুকিং ভলিউমের ভিত্তিতে ব্রোঞ্জ (১.৫%), সিলভার (২.৫%) এবং গোল্ড (৩.৫%) টিয়ারের ক্যাশব্যাক তুলনা করুন।'}
             </p>
           </div>
 
@@ -292,15 +292,15 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ lang }) 
           <div className="flex items-center space-x-2 text-xs font-mono shrink-0">
             <span className="px-2.5 py-1 bg-amber-950/70 text-amber-500 border border-amber-500/30 rounded-lg flex items-center space-x-1 font-bold">
               <span className="w-2 h-2 rounded-full bg-amber-600" />
-              <span>Bronze 2%</span>
+              <span>Bronze 1.5%</span>
             </span>
             <span className="px-2.5 py-1 bg-slate-800 text-slate-300 border border-slate-700 rounded-lg flex items-center space-x-1 font-bold">
               <span className="w-2 h-2 rounded-full bg-slate-400" />
-              <span>Silver 5%</span>
+              <span>Silver 2.5%</span>
             </span>
             <span className="px-2.5 py-1 bg-yellow-950/80 text-yellow-300 border border-yellow-500/40 rounded-lg flex items-center space-x-1 font-bold">
               <span className="w-2 h-2 rounded-full bg-yellow-400" />
-              <span>Gold 8%</span>
+              <span>Gold 3.5%</span>
             </span>
           </div>
         </div>
@@ -358,19 +358,19 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ lang }) 
               <Legend wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }} />
               <Bar
                 dataKey={metricType === 'TON' ? 'BronzeTon' : 'BronzeUsd'}
-                name="Bronze Status (2%)"
+                name="Bronze Status (1.5%)"
                 fill="#d97706"
                 radius={[4, 4, 0, 0]}
               />
               <Bar
                 dataKey={metricType === 'TON' ? 'SilverTon' : 'SilverUsd'}
-                name="Silver Status (5%)"
+                name="Silver Status (2.5%)"
                 fill="#94a3b8"
                 radius={[4, 4, 0, 0]}
               />
               <Bar
                 dataKey={metricType === 'TON' ? 'GoldTon' : 'GoldUsd'}
-                name="Gold Status (8%)"
+                name="Gold Status (3.5%)"
                 fill="#eab308"
                 radius={[4, 4, 0, 0]}
               />

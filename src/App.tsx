@@ -25,10 +25,12 @@ import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { UserProfileModal } from './components/UserProfileModal';
 import { WishlistTab } from './components/WishlistTab';
+import { LegalModal, LegalModalType } from './components/LegalModal';
 
 export default function App() {
   const [lang, setLang] = useState<Language>('en');
   const [activeTab, setActiveTab] = useState<TabType>('hotels');
+  const [legalModalType, setLegalModalType] = useState<LegalModalType>(null);
 
   // Firebase Auth & User Profile Metadata State
   const [authUser, setAuthUser] = useState<User | null>(null);
@@ -570,17 +572,57 @@ export default function App() {
         lang={lang}
       />
 
-      {/* Footer */}
-      <footer className="bg-slate-900 border-t border-slate-800 py-6 text-center text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
-          <div>
-            💎 <span className="font-bold text-slate-400">TON TRAVEL</span> Mini App &bull; Powered by TON Blockchain & Google AI
+      {/* Footer & Compliance Notice */}
+      <footer className="bg-slate-900 border-t border-slate-800 py-6 text-xs text-slate-500">
+        <div className="max-w-7xl mx-auto px-4 space-y-3">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
+            <div className="flex items-center space-x-2">
+              <img src="/app-logo-192.png" alt="TON Travel" className="w-5 h-5 rounded-md object-cover" />
+              <span className="font-bold text-slate-300">TON TRAVEL</span>
+              <span>&bull; Web3 Travel & Cashback Loyalty Platform</span>
+            </div>
+            <div>
+              Payout Wallet: <code className="text-cyan-400 font-mono text-[11px]">EQBvW839_TonSpace_cX92</code>
+            </div>
           </div>
-          <div>
-            Payout Wallet: <code className="text-cyan-400 font-mono">EQBvW839_TonSpace_cX92</code>
+
+          <div className="pt-2 border-t border-slate-800/60 flex flex-col sm:flex-row justify-between items-center gap-2 text-[11px]">
+            <p className="text-slate-500 text-center sm:text-left">
+              {lang === 'en'
+                ? 'Affiliate Disclosure: We may receive compensation from partner links. TON Cashback is verified upon completed stay without cancellation.'
+                : 'অ্যাফিলিয়েট ডিসক্লোজার: আমরা পার্টনার বুকিং থেকে কমিশন পেতে পারি। সফল হোটেল অবস্থান সমাপ্তির পর TON ক্যাশব্যাক প্রদান করা হয়।'}
+            </p>
+            <div className="flex items-center space-x-4 shrink-0 text-slate-400">
+              <button
+                onClick={() => setLegalModalType('affiliate')}
+                className="hover:text-cyan-400 underline decoration-slate-700 transition"
+              >
+                {lang === 'en' ? 'Affiliate Policy' : 'অ্যাফিলিয়েট নীতি'}
+              </button>
+              <button
+                onClick={() => setLegalModalType('terms')}
+                className="hover:text-cyan-400 underline decoration-slate-700 transition"
+              >
+                {lang === 'en' ? 'Terms' : 'শর্তাবলী'}
+              </button>
+              <button
+                onClick={() => setLegalModalType('privacy')}
+                className="hover:text-cyan-400 underline decoration-slate-700 transition"
+              >
+                {lang === 'en' ? 'Privacy' : 'গোপনীয়তা'}
+              </button>
+            </div>
           </div>
         </div>
       </footer>
+
+      {/* Compliance & Legal Modal */}
+      <LegalModal
+        type={legalModalType}
+        isOpen={!!legalModalType}
+        onClose={() => setLegalModalType(null)}
+        lang={lang}
+      />
 
     </div>
   );

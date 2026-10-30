@@ -1,4 +1,3 @@
-import { UserProfile } from '../types';
 import { TON_USD_RATE } from '../data/hotels';
 
 export type LoyaltyTier = 'Bronze' | 'Silver' | 'Gold' | 'Platinum';
@@ -11,20 +10,28 @@ export interface CashbackCalculationResult {
   bonusApplied: boolean;
 }
 
+export const MAX_CASHBACK_PERCENT = 4.0;
+
 export const LOYALTY_TIER_RATES: Record<LoyaltyTier, number> = {
-  Bronze: 2,
-  Silver: 5,
-  Gold: 8,
-  Platinum: 12,
+  Bronze: 1.5,
+  Silver: 2.5,
+  Gold: 3.5,
+  Platinum: 4.0,
 };
+
+const isTier = (t: unknown): t is LoyaltyTier =>
+  typeof t === 'string' &&
+  Object.prototype.hasOwnProperty.call(LOYALTY_TIER_RATES, t);
 
 /**
  * Calculates potential TON cashback rewards for a user based on their loyalty tier,
  * Telegram Premium status, and the booking total amount.
+ * Cashback is funded from confirmed affiliate commissions and credited
+ * after completed stay verification by the hotel provider.
  *
  * @param bookingTotalUsd Total booking cost in USD
  * @param loyaltyTier User loyalty tier from profile ('Bronze' | 'Silver' | 'Gold' | 'Platinum')
- * @param isPremium Whether the user has Telegram Premium (+2% bonus boost)
+ * @param isPremium Whether the user has Telegram Premium (+0.5% bonus boost)
  * @param tonUsdRate Exchange rate for TON/USD (defaults to TON_USD_RATE)
  */
 export function calculateTonCashback(
@@ -33,28 +40,38 @@ export function calculateTonCashback(
   isPremium?: boolean,
   tonUsdRate: number = TON_USD_RATE
 ): CashbackCalculationResult {
-  const normalizedTier: LoyaltyTier =
-    loyaltyTier && loyaltyTier in LOYALTY_TIER_RATES
-      ? (loyaltyTier as LoyaltyTier)
-      : isPremium
-      ? 'Gold'
-      : 'Bronze';
+  // Input validation - return zero cashback safely on invalid or zero amounts
+  if (
+    !Number.isFinite(bookingTotalUsd) ||
+    bookingTotalUsd <= 0 ||
+    !Number.isFinite(tonUsdRate) ||
+    tonUsdRate <= 0
+  ) {
+    const fallbackTier: LoyaltyTier = isTier(loyaltyTier) ? loyaltyTier : 'Bronze';
+    return {
+      tier: fallbackTier,
+      cashbackPercent: LOYALTY_TIER_RATES[fallbackTier],
+      cashbackTon: 0,
+      cashbackUsd: 0,
+      bonusApplied: false,
+    };
+  }
 
-  let basePercent = LOYALTY_TIER_RATES[normalizedTier] ?? 3;
+  const tier: LoyaltyTier = isTier(loyaltyTier) ? loyaltyTier : 'Bronze';
+  let percent = LOYALTY_TIER_RATES[tier];
   let bonusApplied = false;
 
   if (isPremium) {
-    basePercent = Math.min(12, basePercent + 2);
+    percent = Math.min(MAX_CASHBACK_PERCENT, percent + 0.5);
     bonusApplied = true;
   }
 
-  const bookingTotalTon = bookingTotalUsd / (tonUsdRate || 1);
-  const cashbackTon = (bookingTotalTon * basePercent) / 100;
-  const cashbackUsd = (bookingTotalUsd * basePercent) / 100;
+  const cashbackUsd = (bookingTotalUsd * percent) / 100;
+  const cashbackTon = cashbackUsd / tonUsdRate;
 
   return {
-    tier: normalizedTier,
-    cashbackPercent: basePercent,
+    tier,
+    cashbackPercent: percent,
     cashbackTon,
     cashbackUsd,
     bonusApplied,

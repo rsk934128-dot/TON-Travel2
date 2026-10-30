@@ -58,8 +58,8 @@ export const Header: React.FC<HeaderProps> = ({
           
           {/* Brand & Mini App badge */}
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold shadow-lg shadow-cyan-500/20">
-              💎
+            <div className="w-10 h-10 rounded-xl overflow-hidden border border-cyan-500/40 shadow-lg shadow-cyan-500/25 shrink-0 bg-slate-950">
+              <img src="/app-logo-192.png" alt="TON Travel" className="w-full h-full object-cover" />
             </div>
             <div>
               <div className="flex items-center space-x-2">

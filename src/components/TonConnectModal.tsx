@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { TonWalletState, Hotel, Booking, Language } from '../types';
 import { TON_USD_RATE } from '../data/hotels';
-import { Wallet, CheckCircle, ShieldCheck, QrCode, Loader2, ArrowRight, X } from 'lucide-react';
+import { calculateTonCashback } from '../lib/cashback';
+import { Wallet, CheckCircle, ShieldCheck, QrCode, Loader2, ArrowRight, X, AlertTriangle } from 'lucide-react';
 
 interface TonConnectModalProps {
   isOpen: boolean;
@@ -39,9 +40,14 @@ export const TonConnectModal: React.FC<TonConnectModalProps> = ({
   const totalPriceUsd = hotelToBook.pricePerNightUsd * nights;
   const totalPriceTon = totalPriceUsd / TON_USD_RATE;
   
-  const cashbackPercent = wallet.isPremium ? 8 : 3;
-  const cashbackTon = (totalPriceTon * cashbackPercent) / 100;
-  const cashbackUsd = (totalPriceUsd * cashbackPercent) / 100;
+  const cashbackCalc = calculateTonCashback(
+    totalPriceUsd,
+    wallet.isPremium ? 'Gold' : 'Bronze',
+    wallet.isPremium
+  );
+  const cashbackPercent = cashbackCalc.cashbackPercent;
+  const cashbackTon = cashbackCalc.cashbackTon;
+  const cashbackUsd = cashbackCalc.cashbackUsd;
 
   const wallets = [
     { name: 'Tonkeeper', icon: '💎', desc: 'Popular TON Mobile Wallet' },
@@ -117,6 +123,10 @@ export const TonConnectModal: React.FC<TonConnectModalProps> = ({
             {step === 'signing' && (lang === 'en' ? 'Signing On-Chain Tx...' : 'ব্লকচেইনে সাইন করা হচ্ছে...')}
             {step === 'success' && (lang === 'en' ? 'Payment Confirmed! 💎' : 'পেমেন্ট সফল হয়েছে!')}
           </h2>
+          <div className="mt-2.5 inline-flex items-center space-x-1.5 px-2.5 py-1 bg-amber-500/10 border border-amber-500/25 rounded-md text-[11px] text-amber-300 font-mono">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span>{lang === 'en' ? 'Prototype Sandbox Simulation Mode' : 'প্রোটোটাইপ স্যান্ডবক্স সিমুলেশন মোড'}</span>
+          </div>
         </div>
 
         {/* Modal Body */}
