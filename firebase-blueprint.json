@@ -78,6 +78,19 @@
       },
       "required": ["hotelId", "authorName", "rating", "comment"]
     },
+    "WishlistItem": {
+      "title": "WishlistItem",
+      "description": "User saved hotel wishlist item in Firestore.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique wishlist item ID" },
+        "userId": { "type": "string", "description": "Owner User UID or session wallet ID" },
+        "hotelId": { "type": "string", "description": "Saved hotel ID" },
+        "hotelName": { "type": "string", "description": "Saved hotel name" },
+        "addedAt": { "type": "string", "description": "ISO timestamp when added" }
+      },
+      "required": ["id", "userId", "hotelId", "hotelName", "addedAt"]
+    },
     "TestConnection": {
       "title": "TestConnection",
       "description": "Test document for checking Firestore server connectivity.",
@@ -104,6 +117,10 @@
     "/hotel_reviews/{reviewId}": {
       "schema": "HotelReview",
       "description": "Collection of hotel user reviews and star rating testimonials"
+    },
+    "/wishlists/{wishlistId}": {
+      "schema": "WishlistItem",
+      "description": "Collection of user saved hotel wishlist items"
     },
     "/test/{docId}": {
       "schema": "TestConnection",

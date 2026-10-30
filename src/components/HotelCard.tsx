@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Hotel, Language, HotelReview, UserProfile } from '../types';
 import { TON_USD_RATE } from '../data/hotels';
-import { Star, Crown, MapPin, Zap, ArrowRight, MessageSquare, ChevronDown, ChevronUp, Quote } from 'lucide-react';
+import { convertFromUsd } from '../lib/currency';
+import { Star, Crown, MapPin, Zap, ArrowRight, MessageSquare, ChevronDown, ChevronUp, Quote, Coins, Heart } from 'lucide-react';
 import { HotelReviewsSection } from './HotelReviewsSection';
 
 interface HotelCardProps {
@@ -12,6 +13,8 @@ interface HotelCardProps {
   onAddReview: (review: HotelReview) => Promise<void>;
   userProfile?: UserProfile | null;
   onBookClick: (hotel: Hotel) => void;
+  isWishlisted?: boolean;
+  onToggleWishlist?: (hotel: Hotel) => void;
 }
 
 export const HotelCard: React.FC<HotelCardProps> = ({
@@ -22,6 +25,8 @@ export const HotelCard: React.FC<HotelCardProps> = ({
   onAddReview,
   userProfile,
   onBookClick,
+  isWishlisted = false,
+  onToggleWishlist,
 }) => {
   const [showReviews, setShowReviews] = useState(false);
 
@@ -29,6 +34,12 @@ export const HotelCard: React.FC<HotelCardProps> = ({
   const cashbackPercent = isPremium ? 8 : 3;
   const cashbackTonPerNight = (priceTon * cashbackPercent) / 100;
   const cashbackUsdPerNight = (hotel.pricePerNightUsd * cashbackPercent) / 100;
+
+  // Convert room price dynamically based on user's preferred currency stored in Firestore profile
+  const convertedPrice = convertFromUsd(
+    hotel.pricePerNightUsd,
+    userProfile?.preferredCurrency
+  );
 
   const hotelReviews = reviews.filter((r) => r.hotelId === hotel.id);
   const featuredReview = hotelReviews.length > 0 ? hotelReviews[0] : null;
@@ -53,10 +64,30 @@ export const HotelCard: React.FC<HotelCardProps> = ({
             <span className="text-slate-400 text-[10px]">({hotelReviews.length || hotel.reviewsCount})</span>
           </div>
 
-          {/* Cashback Badge */}
-          <div className="absolute top-3 right-3 bg-amber-500 text-slate-950 px-2.5 py-1 rounded-full text-[11px] font-black flex items-center space-x-1 shadow-lg shadow-amber-500/20">
-            <Crown className="w-3.5 h-3.5" />
-            <span>{cashbackPercent}% TON CASHBACK</span>
+          {/* Cashback Badge & Wishlist Heart */}
+          <div className="absolute top-3 right-3 flex items-center space-x-2">
+            {onToggleWishlist && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleWishlist(hotel);
+                }}
+                className={`p-2 rounded-full backdrop-blur-md border transition-all duration-200 shadow-md ${
+                  isWishlisted
+                    ? 'bg-rose-500/90 text-white border-rose-400 scale-105 shadow-rose-500/40'
+                    : 'bg-slate-950/70 text-slate-300 hover:text-rose-400 border-slate-700/80 hover:bg-slate-900/90'
+                }`}
+                title={isWishlisted ? 'Remove from Wishlist' : 'Save to Wishlist'}
+              >
+                <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-white' : ''}`} />
+              </button>
+            )}
+
+            <div className="bg-amber-500 text-slate-950 px-2.5 py-1 rounded-full text-[11px] font-black flex items-center space-x-1 shadow-lg shadow-amber-500/20">
+              <Crown className="w-3.5 h-3.5" />
+              <span>{cashbackPercent}% TON CASHBACK</span>
+            </div>
           </div>
 
           {/* Location on image */}
@@ -142,11 +173,29 @@ export const HotelCard: React.FC<HotelCardProps> = ({
       <div className="p-5 pt-0 border-t border-slate-800/80 mt-2 space-y-3">
         <div className="flex justify-between items-end">
           <div>
-            <div className="text-[10px] text-slate-400 uppercase font-semibold">Starting from</div>
+            <div className="flex items-center space-x-1.5 mb-1">
+              <span className="text-[10px] text-slate-400 uppercase font-semibold">Starting from</span>
+              {userProfile?.preferredCurrency && (
+                <span className="text-[9px] bg-cyan-950/90 text-cyan-300 border border-cyan-500/40 px-1.5 py-0.2 rounded font-mono font-bold flex items-center space-x-1">
+                  <span>{convertedPrice.flag}</span>
+                  <span>{convertedPrice.code}</span>
+                </span>
+              )}
+            </div>
+
             <div className="flex items-baseline space-x-1.5">
-              <span className="text-xl font-black text-white font-mono">${hotel.pricePerNightUsd}</span>
-              <span className="text-xs text-cyan-400 font-mono font-bold">~{priceTon.toFixed(2)} TON</span>
+              <span className="text-xl font-black text-white font-mono">{convertedPrice.formatted}</span>
               <span className="text-[10px] text-slate-500">/night</span>
+            </div>
+
+            {/* Sub-currencies reference */}
+            <div className="text-[10px] text-slate-400 font-mono mt-0.5 space-x-1.5">
+              {convertedPrice.code !== 'USD' && (
+                <span>${hotel.pricePerNightUsd} USD</span>
+              )}
+              {convertedPrice.code !== 'TON' && (
+                <span className="text-cyan-400 font-bold">~{priceTon.toFixed(2)} TON</span>
+              )}
             </div>
           </div>
 

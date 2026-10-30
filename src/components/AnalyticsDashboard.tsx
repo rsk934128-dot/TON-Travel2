@@ -39,6 +39,37 @@ const DESTINATION_DATA = [
   { city: 'Paris', bookings: 178, volumeTon: 1520 },
 ];
 
+const LOYALTY_TIER_COMPARISON_DATA = [
+  { bookingTotalUsd: 500, bookingTotalTon: 92 },
+  { bookingTotalUsd: 1500, bookingTotalTon: 277 },
+  { bookingTotalUsd: 3000, bookingTotalTon: 554 },
+  { bookingTotalUsd: 5000, bookingTotalTon: 923 },
+  { bookingTotalUsd: 8000, bookingTotalTon: 1476 },
+  { bookingTotalUsd: 12000, bookingTotalTon: 2214 },
+  { bookingTotalUsd: 20000, bookingTotalTon: 3690 },
+].map((item) => {
+  const bronzeUsd = item.bookingTotalUsd * 0.02;
+  const silverUsd = item.bookingTotalUsd * 0.05;
+  const goldUsd = item.bookingTotalUsd * 0.08;
+
+  const bronzeTon = item.bookingTotalTon * 0.02;
+  const silverTon = item.bookingTotalTon * 0.05;
+  const goldTon = item.bookingTotalTon * 0.08;
+
+  return {
+    bookingUsd: `$${item.bookingTotalUsd.toLocaleString()}`,
+    bookingTon: `${item.bookingTotalTon} TON`,
+    bookingUsdRaw: item.bookingTotalUsd,
+    bookingTonRaw: item.bookingTotalTon,
+    BronzeUsd: Math.round(bronzeUsd),
+    SilverUsd: Math.round(silverUsd),
+    GoldUsd: Math.round(goldUsd),
+    BronzeTon: Number(bronzeTon.toFixed(1)),
+    SilverTon: Number(silverTon.toFixed(1)),
+    GoldTon: Number(goldTon.toFixed(1)),
+  };
+});
+
 const CustomTooltip = ({ active, payload, label, metricType }: any) => {
   if (active && payload && payload.length) {
     return (
@@ -233,6 +264,117 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ lang }) 
                 activeDot={{ r: 8, fill: '#10b981' }}
               />
             </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Loyalty Tier Cashback Breakdown Section */}
+      <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4 shadow-xl">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div>
+            <div className="flex items-center space-x-2 text-amber-400 text-xs font-bold uppercase tracking-wider">
+              <Award className="w-4 h-4" />
+              <span>Loyalty Tier Reward Matrix</span>
+            </div>
+            <h3 className="text-lg font-black text-white mt-1">
+              {lang === 'en'
+                ? 'Potential Cashback Earnings by Loyalty Tier'
+                : 'আনুপাতিক ক্যাশব্যাক উপার্জন (ব্রোঞ্জ, সিলভার ও গোল্ড)'}
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              {lang === 'en'
+                ? "Compare potential cashback returns for 'Bronze' (2%), 'Silver' (5%), and 'Gold' (8%) status across booking total benchmarks."
+                : 'বুকিং ভলিউমের ভিত্তিতে ব্রোঞ্জ (২%), সিলভার (৫%) এবং গোল্ড (৮%) টিয়ারের ক্যাশব্যাক তুলনা করুন।'}
+            </p>
+          </div>
+
+          {/* Tier rate legend badges */}
+          <div className="flex items-center space-x-2 text-xs font-mono shrink-0">
+            <span className="px-2.5 py-1 bg-amber-950/70 text-amber-500 border border-amber-500/30 rounded-lg flex items-center space-x-1 font-bold">
+              <span className="w-2 h-2 rounded-full bg-amber-600" />
+              <span>Bronze 2%</span>
+            </span>
+            <span className="px-2.5 py-1 bg-slate-800 text-slate-300 border border-slate-700 rounded-lg flex items-center space-x-1 font-bold">
+              <span className="w-2 h-2 rounded-full bg-slate-400" />
+              <span>Silver 5%</span>
+            </span>
+            <span className="px-2.5 py-1 bg-yellow-950/80 text-yellow-300 border border-yellow-500/40 rounded-lg flex items-center space-x-1 font-bold">
+              <span className="w-2 h-2 rounded-full bg-yellow-400" />
+              <span>Gold 8%</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Loyalty Tier Comparison BarChart */}
+        <div className="h-80 w-full pt-2">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={LOYALTY_TIER_COMPARISON_DATA}
+              margin={{ top: 15, right: 30, left: 10, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+              <XAxis
+                dataKey={metricType === 'TON' ? 'bookingTon' : 'bookingUsd'}
+                stroke="#64748b"
+                tick={{ fill: '#94a3b8', fontSize: 11 }}
+              />
+              <YAxis
+                stroke="#64748b"
+                tick={{ fill: '#94a3b8', fontSize: 11 }}
+                tickFormatter={(val) =>
+                  metricType === 'TON' ? `${val} TON` : `$${val}`
+                }
+              />
+              <Tooltip
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="bg-slate-950 border border-slate-700 p-3.5 rounded-xl shadow-2xl text-xs font-mono space-y-2">
+                        <div className="font-bold text-white border-b border-slate-800 pb-1.5 flex items-center justify-between space-x-4">
+                          <span>Booking Total:</span>
+                          <span className="text-cyan-300">{label}</span>
+                        </div>
+                        <div className="space-y-1">
+                          {payload.map((entry: any, index: number) => (
+                            <div key={`tier-${index}`} className="flex justify-between items-center space-x-6">
+                              <span className="flex items-center space-x-1.5" style={{ color: entry.color }}>
+                                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                                <span>{entry.name}:</span>
+                              </span>
+                              <span className="font-bold text-white">
+                                {metricType === 'TON'
+                                  ? `${entry.value} TON`
+                                  : `$${entry.value} USD`}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Legend wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }} />
+              <Bar
+                dataKey={metricType === 'TON' ? 'BronzeTon' : 'BronzeUsd'}
+                name="Bronze Status (2%)"
+                fill="#d97706"
+                radius={[4, 4, 0, 0]}
+              />
+              <Bar
+                dataKey={metricType === 'TON' ? 'SilverTon' : 'SilverUsd'}
+                name="Silver Status (5%)"
+                fill="#94a3b8"
+                radius={[4, 4, 0, 0]}
+              />
+              <Bar
+                dataKey={metricType === 'TON' ? 'GoldTon' : 'GoldUsd'}
+                name="Gold Status (8%)"
+                fill="#eab308"
+                radius={[4, 4, 0, 0]}
+              />
+            </BarChart>
           </ResponsiveContainer>
         </div>
       </div>

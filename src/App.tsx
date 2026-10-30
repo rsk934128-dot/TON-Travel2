@@ -17,13 +17,14 @@ import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { OfflineView } from './components/OfflineView';
 
 import { HOTELS, INITIAL_VOUCHER } from './data/hotels';
-import { Hotel, Booking, TonWalletState, Language, UserProfile, HotelReview } from './types';
+import { Hotel, Booking, TonWalletState, Language, UserProfile, HotelReview, WishlistItem } from './types';
 import { Sparkles, Hotel as HotelIcon, Ticket, ShieldCheck, Mail, MessageSquare, WifiOff } from 'lucide-react';
 import { registerServiceWorker, preCacheOfflineVouchers } from './lib/registerServiceWorker';
-import { db, auth, testFirestoreConnection, handleFirestoreError, OperationType, loginWithGoogle, logoutUser, saveUserProfile, getUserProfile, seedInitialReviewsIfEmpty, subscribeToHotelReviews, addHotelReview } from './lib/firebase';
+import { db, auth, testFirestoreConnection, handleFirestoreError, OperationType, loginWithGoogle, logoutUser, saveUserProfile, getUserProfile, seedInitialReviewsIfEmpty, subscribeToHotelReviews, addHotelReview, subscribeToWishlists, toggleWishlistItemDoc } from './lib/firebase';
 import { collection, doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { UserProfileModal } from './components/UserProfileModal';
+import { WishlistTab } from './components/WishlistTab';
 
 export default function App() {
   const [lang, setLang] = useState<Language>('en');
@@ -34,8 +35,9 @@ export default function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
 
-  // Firestore Hotel Reviews State
+  // Firestore Hotel Reviews & Wishlist State
   const [reviews, setReviews] = useState<HotelReview[]>([]);
+  const [wishlists, setWishlists] = useState<WishlistItem[]>([]);
 
   // Offline Service Worker & Connectivity States
   const [isRealOffline, setIsRealOffline] = useState<boolean>(typeof navigator !== 'undefined' ? !navigator.onLine : false);
@@ -50,6 +52,9 @@ export default function App() {
     balanceUsd: 265.68 * 5.42,
     isPremium: true
   });
+
+  // Current User ID derivation (Auth user, Profile UID, or active Wallet address)
+  const currentUserId = authUser?.uid || userProfile?.uid || wallet.address || 'guest_user';
 
   // Vouchers state (initialized with sample booking or cached vouchers)
   const [vouchers, setVouchers] = useState<Booking[]>(() => {
@@ -108,16 +113,30 @@ export default function App() {
       setReviews(fetchedReviews);
     });
 
+    // Subscribe to Firestore wishlists collection
+    const unsubscribeWishlists = subscribeToWishlists((items) => {
+      setWishlists(items);
+    });
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       unsubscribeBookings();
       unsubscribeReviews();
+      unsubscribeWishlists();
     };
   }, []);
 
   const handleAddReview = async (review: HotelReview) => {
     await addHotelReview(review);
+  };
+
+  const userWishlists = wishlists.filter((item) => item.userId === currentUserId);
+  const wishlistedHotelIds = new Set(userWishlists.map((item) => item.hotelId));
+
+  const handleToggleWishlist = async (hotel: Hotel) => {
+    const isCurrentlySaved = wishlistedHotelIds.has(hotel.id);
+    await toggleWishlistItemDoc(currentUserId, hotel.id, hotel.name, isCurrentlySaved);
   };
 
   // Listen for Firebase Auth changes
@@ -203,6 +222,40 @@ export default function App() {
     };
     await saveUserProfile(updated);
     setUserProfile(updated);
+  };
+
+  const handleCurrencyChange = async (newCurrency: UserProfile['preferredCurrency']) => {
+    setUserProfile((prev) => {
+      if (prev) {
+        return { ...prev, preferredCurrency: newCurrency, updatedAt: new Date().toISOString() };
+      }
+      return {
+        uid: authUser?.uid || 'guest_user',
+        displayName: authUser?.displayName || 'TON Traveler',
+        email: authUser?.email || '',
+        photoURL: authUser?.photoURL || '',
+        loyaltyTier: 'Gold',
+        preferredCurrency: newCurrency,
+        updatedAt: new Date().toISOString(),
+      };
+    });
+
+    if (authUser) {
+      try {
+        const updatedProfile: UserProfile = {
+          uid: authUser.uid,
+          displayName: authUser.displayName || userProfile?.displayName || 'TON Traveler',
+          email: authUser.email || userProfile?.email || '',
+          photoURL: authUser.photoURL || userProfile?.photoURL || '',
+          loyaltyTier: userProfile?.loyaltyTier || 'Gold',
+          preferredCurrency: newCurrency,
+          updatedAt: new Date().toISOString(),
+        };
+        await saveUserProfile(updatedProfile);
+      } catch (e) {
+        console.error('[Firebase] Failed to save preferred currency:', e);
+      }
+    }
   };
 
   // Pre-cache vouchers to LocalStorage and Service Worker Cache
@@ -291,6 +344,7 @@ export default function App() {
         user={authUser}
         userProfile={userProfile}
         onOpenProfileModal={() => setIsProfileModalOpen(true)}
+        onChangeCurrency={handleCurrencyChange}
       />
 
       {/* Navigation Sub-header */}
@@ -298,6 +352,7 @@ export default function App() {
         activeTab={activeTab}
         onChangeTab={setActiveTab}
         vouchersCount={vouchers.length}
+        wishlistCount={userWishlists.length}
         lang={lang}
         isOffline={isRealOffline || isSimulatedOffline}
       />
@@ -391,6 +446,8 @@ export default function App() {
                     onAddReview={handleAddReview}
                     userProfile={userProfile}
                     onBookClick={handleOpenHotelModal}
+                    isWishlisted={wishlistedHotelIds.has(hotel.id)}
+                    onToggleWishlist={handleToggleWishlist}
                   />
                 ))}
               </div>
@@ -399,7 +456,23 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 2: VOUCHERS & RECEIPTS */}
+        {/* TAB 2: WISHLIST TAB */}
+        {activeTab === 'wishlist' && (
+          <WishlistTab
+            wishlist={userWishlists}
+            allHotels={HOTELS}
+            userProfile={userProfile}
+            lang={lang}
+            onBookHotel={handleOpenHotelModal}
+            onToggleWishlist={handleToggleWishlist}
+            reviews={reviews}
+            onAddReview={handleAddReview}
+            isPremium={wallet.isPremium}
+            onExploreHotels={() => setActiveTab('hotels')}
+          />
+        )}
+
+        {/* TAB 3: VOUCHERS & RECEIPTS */}
         {activeTab === 'vouchers' && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
             <div className="text-center max-w-xl mx-auto space-y-2">

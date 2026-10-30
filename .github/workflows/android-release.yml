@@ -1,0 +1,131 @@
+name: Build & Release Android APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release Tag (e.g. v1.0.0)'
+        required: false
+        default: 'v1.0.0'
+      create_release:
+        description: 'Publish as GitHub Release?'
+        type: boolean
+        default: true
+
+jobs:
+  build-apk:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Setup Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Node Dependencies
+        run: npm install
+
+      - name: Build Web Application
+        run: npm run build
+
+      - name: Sync Capacitor Android
+        run: |
+          if [ ! -d "android" ]; then
+            npx cap add android
+          else
+            npx cap sync android
+          fi
+
+      - name: Grant Execute Permission for Gradle Wrapper
+        run: chmod +x android/gradlew
+
+      - name: Build Android Debug APK
+        run: |
+          cd android
+          ./gradlew assembleDebug --stacktrace
+          cd ..
+
+      - name: Build Android Release APK
+        run: |
+          cd android
+          ./gradlew assembleRelease --stacktrace || true
+          cd ..
+
+      - name: Prepare APK Outputs
+        id: prepare_apks
+        run: |
+          mkdir -p build_output
+          TAG_NAME="${{ github.ref_name }}"
+          if [ -z "$TAG_NAME" ] || [[ "$TAG_NAME" == *"main"* ]] || [[ "$TAG_NAME" == *"master"* ]]; then
+            TAG_NAME="${{ inputs.release_tag || 'v1.0.0' }}"
+          fi
+          
+          # Copy Debug APK (always pre-signed & ready to install on any Android phone)
+          if [ -f "android/app/build/outputs/apk/debug/app-debug.apk" ]; then
+            cp android/app/build/outputs/apk/debug/app-debug.apk "build_output/TON-Travel-${TAG_NAME}-debug.apk"
+            cp android/app/build/outputs/apk/debug/app-debug.apk "build_output/TON-Travel-latest.apk"
+          fi
+
+          # Copy Release APK if available
+          if [ -f "android/app/build/outputs/apk/release/app-release-unsigned.apk" ]; then
+            cp android/app/build/outputs/apk/release/app-release-unsigned.apk "build_output/TON-Travel-${TAG_NAME}-release-unsigned.apk"
+          elif [ -f "android/app/build/outputs/apk/release/app-release.apk" ]; then
+            cp android/app/build/outputs/apk/release/app-release.apk "build_output/TON-Travel-${TAG_NAME}-release.apk"
+          fi
+
+          echo "apk_count=$(ls -1 build_output/*.apk 2>/dev/null | wc -l)" >> $GITHUB_OUTPUT
+          echo "tag_name=${TAG_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Upload APKs to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: TON-Travel-Android-APK
+          path: build_output/*.apk
+          retention-days: 30
+
+      - name: Create or Update GitHub Release
+        if: ${{ startsWith(github.ref, 'refs/tags/v') || inputs.create_release == true }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.prepare_apks.outputs.tag_name }}
+          name: "TON Travel Android Release ${{ steps.prepare_apks.outputs.tag_name }}"
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: build_output/*.apk
+          body: |
+            ### 📱 TON Travel Android APK Release
+            
+            আমাদের অ্যান্ড্রয়েড অ্যাপের নতুন সংস্করণ প্রস্তুত!
+            
+            #### 📥 ডাউনলোড নির্দেশিকা:
+            - **`TON-Travel-latest.apk`**: সরাসরি যেকোনো অ্যান্ড্রয়েড ফোনে ইন্সটলযোগ্য APK (ইনস্টলেশনের জন্য "Install Unknown Apps" অনুমতি দিন)।
+            - **Web & Blockchain Sync**: TON Connect ও হোটেল বুকিং সুবিধা সমন্বিত।
+            
+            #### 🚀 কীভাবে ব্যবহার করবেন:
+            1. নিচে দেয়া `.apk` ফাইলটি আপনার অ্যান্ড্রয়েড ফোনে ডাউনলোড করুন।
+            2. ফাইলটিতে ট্যাপ করে **Install** নির্বাচন করুন।
+            3. অ্যাপটি চালু করে হোটেল বুকিং এবং ক্রিপ্টো ক্যাশব্যাক উপভোগ করুন!
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

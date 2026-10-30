@@ -79,3 +79,11 @@ export interface HotelReview {
   userId?: string;
 }
 
+export interface WishlistItem {
+  id: string;
+  userId: string;
+  hotelId: string;
+  hotelName: string;
+  addedAt: string;
+}
+

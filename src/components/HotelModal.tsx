@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Hotel, TonWalletState, Language, UserProfile, HotelReview } from '../types';
 import { TON_USD_RATE } from '../data/hotels';
 import { calculateTonCashback } from '../lib/cashback';
-import { Calendar, Users, Crown, ShieldCheck, ArrowRight, X, MapPin, Star, Sparkles, Award } from 'lucide-react';
+import { convertFromUsd } from '../lib/currency';
+import { Calendar, Users, Crown, ShieldCheck, ArrowRight, X, MapPin, Star, Sparkles, Award, Coins } from 'lucide-react';
 import { HotelReviewsSection } from './HotelReviewsSection';
 
 interface HotelModalProps {
@@ -48,6 +49,10 @@ export const HotelModal: React.FC<HotelModalProps> = ({
 
   const totalPriceUsd = hotel.pricePerNightUsd * nights;
   const totalPriceTon = totalPriceUsd / TON_USD_RATE;
+
+  // Convert room prices dynamically based on user's preferred currency stored in Firestore profile
+  const convertedRate = convertFromUsd(hotel.pricePerNightUsd, userProfile?.preferredCurrency);
+  const convertedTotal = convertFromUsd(totalPriceUsd, userProfile?.preferredCurrency);
 
   // Calculate potential TON cashback reward via utility function
   const cashbackResult = calculateTonCashback(
@@ -158,15 +163,30 @@ export const HotelModal: React.FC<HotelModalProps> = ({
           <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2 font-mono text-xs">
             <div className="flex justify-between text-slate-400">
               <span>Rate per night:</span>
-              <span>${hotel.pricePerNightUsd} USD</span>
+              <span className="text-slate-200">
+                {convertedRate.formatted}
+                {convertedRate.code !== 'USD' && ` ($${hotel.pricePerNightUsd})`}
+              </span>
             </div>
             <div className="flex justify-between text-slate-400">
               <span>Nights duration:</span>
               <span>{nights} night(s)</span>
             </div>
-            <div className="flex justify-between text-white font-bold text-sm border-t border-slate-800 pt-2">
-              <span>Total Booking Cost:</span>
-              <span className="text-cyan-300">${totalPriceUsd.toFixed(2)} USD ({totalPriceTon.toFixed(2)} TON)</span>
+            <div className="flex justify-between items-center text-white font-bold text-sm border-t border-slate-800 pt-2">
+              <span className="flex items-center space-x-1.5">
+                <span>Total Cost:</span>
+                {userProfile?.preferredCurrency && (
+                  <span className="text-[10px] bg-cyan-950 text-cyan-300 border border-cyan-500/40 px-1.5 py-0.2 rounded font-sans font-bold">
+                    {convertedTotal.flag} {convertedTotal.code}
+                  </span>
+                )}
+              </span>
+              <div className="text-right">
+                <div className="text-cyan-300 text-base">{convertedTotal.formatted}</div>
+                <div className="text-[10px] text-slate-400 font-normal">
+                  (${totalPriceUsd.toFixed(2)} USD · {totalPriceTon.toFixed(2)} TON)
+                </div>
+              </div>
             </div>
 
             {/* Dynamic Calculated TON Cashback Reward Banner */}

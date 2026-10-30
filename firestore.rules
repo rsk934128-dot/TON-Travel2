@@ -52,6 +52,15 @@ service cloud.firestore {
         && data.comment is string && data.comment.size() <= 2000;
     }
 
+    function isValidWishlistItem(data) {
+      return data.keys().hasAll(['id', 'userId', 'hotelId', 'hotelName', 'addedAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId.size() <= 128
+        && data.hotelId is string && data.hotelId.size() <= 128
+        && data.hotelName is string && data.hotelName.size() <= 200
+        && data.addedAt is string && data.addedAt.size() <= 100;
+    }
+
     // Default catch-all rule: Deny all reads & writes
     match /{document=**} {
       allow read, write: if false;
@@ -91,6 +100,14 @@ service cloud.firestore {
       allow create: if isValidHotelReview(incoming());
       allow update: if isSignedIn() && isValidHotelReview(incoming());
       allow delete: if isSignedIn();
+    }
+
+    // User saved hotel wishlist items
+    match /wishlists/{wishlistId} {
+      allow read: if true;
+      allow create: if isValidWishlistItem(incoming());
+      allow update: if isValidWishlistItem(incoming());
+      allow delete: if true;
     }
   }
 }

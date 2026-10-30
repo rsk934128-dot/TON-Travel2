@@ -1,8 +1,8 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, getDocFromServer, collection, getDocs, onSnapshot } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, setDoc, getDocFromServer, collection, getDocs, onSnapshot, deleteDoc } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { UserProfile, HotelReview } from '../types';
+import { UserProfile, HotelReview, WishlistItem } from '../types';
 import { INITIAL_MOCK_REVIEWS } from '../data/reviews';
 
 const app = initializeApp(firebaseConfig);
@@ -152,6 +152,51 @@ export async function addHotelReview(review: HotelReview): Promise<void> {
   try {
     await setDoc(doc(db, 'hotel_reviews', review.id), review);
     console.log('[Firestore] Added hotel review:', review.id);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, path);
+  }
+}
+
+export function subscribeToWishlists(callback: (wishlists: WishlistItem[]) => void): () => void {
+  const path = 'wishlists';
+  const colRef = collection(db, 'wishlists');
+
+  return onSnapshot(
+    colRef,
+    (snapshot) => {
+      const items: WishlistItem[] = snapshot.docs.map((d) => d.data() as WishlistItem);
+      callback(items);
+    },
+    (error) => {
+      console.error('[Firestore] Wishlist snapshot error:', error);
+      handleFirestoreError(error, OperationType.GET, path);
+    }
+  );
+}
+
+export async function toggleWishlistItemDoc(
+  userId: string,
+  hotelId: string,
+  hotelName: string,
+  currentlySaved: boolean
+): Promise<void> {
+  const docId = `${userId}_${hotelId}`;
+  const path = `wishlists/${docId}`;
+  try {
+    if (currentlySaved) {
+      await deleteDoc(doc(db, 'wishlists', docId));
+      console.log('[Firestore] Removed from wishlist:', docId);
+    } else {
+      const item: WishlistItem = {
+        id: docId,
+        userId,
+        hotelId,
+        hotelName,
+        addedAt: new Date().toISOString(),
+      };
+      await setDoc(doc(db, 'wishlists', docId), item);
+      console.log('[Firestore] Saved to wishlist:', docId);
+    }
   } catch (error) {
     handleFirestoreError(error, OperationType.WRITE, path);
   }

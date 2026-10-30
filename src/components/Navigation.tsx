@@ -1,14 +1,15 @@
 import React from 'react';
-import { Hotel, Ticket, Server, Mail, MessageSquare, TrendingUp, WifiOff, Wifi } from 'lucide-react';
+import { Hotel, Ticket, Server, Mail, MessageSquare, TrendingUp, WifiOff, Wifi, Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Language } from '../types';
 
-export type TabType = 'hotels' | 'vouchers' | 'analytics' | 'gateway' | 'email' | 'community' | 'offline';
+export type TabType = 'hotels' | 'vouchers' | 'wishlist' | 'analytics' | 'gateway' | 'email' | 'community' | 'offline';
 
 interface NavigationProps {
   activeTab: TabType;
   onChangeTab: (tab: TabType) => void;
   vouchersCount: number;
+  wishlistCount?: number;
   lang: Language;
   isOffline?: boolean;
 }
@@ -17,6 +18,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   activeTab,
   onChangeTab,
   vouchersCount,
+  wishlistCount = 0,
   lang,
   isOffline = false,
 }) => {
@@ -27,6 +29,13 @@ export const Navigation: React.FC<NavigationProps> = ({
       labelBn: 'হোটেল বুকিং',
       icon: Hotel,
       badge: 'Cashback'
+    },
+    {
+      id: 'wishlist' as TabType,
+      labelEn: 'Wishlist',
+      labelBn: 'উইশলিস্ট',
+      icon: Heart,
+      count: wishlistCount,
     },
     {
       id: 'vouchers' as TabType,
